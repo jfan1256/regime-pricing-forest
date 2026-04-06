@@ -6,10 +6,10 @@ os.environ["NUMEXPR_NUM_THREADS"] = "1"
 
 import pandas as pd
 
-from lr.train import train
-from rlr.train import train
-from rpf.train import train
-from rpt.train import train
+from lr.train import train as train_lr
+from rlr.train import train as train_rlr
+from rpf.train import train as train_rpf
+from rpt.train import train as train_rpt
 from util.run import make_run_dir, iter_sweep
 from util.system import load_yaml, get_config, get_result_lr, get_result_rlr, get_result_rpf, get_result_rpt, get_data
 
@@ -43,7 +43,7 @@ def run_lr(config_name):
         factors = pd.read_parquet(factor_dir / f"lr_{config['data']}_{size}_m.pq").sort_index()
         if config["factors"] != 'all':
             factors = factors[config["factors"]]
-        sdfs = train(factors, config)
+        sdfs = train_lr(factors, config)
 
         sdfs.to_parquet(output_path)
 
@@ -84,7 +84,7 @@ def run_rlr(config_name):
         factors = pd.read_parquet(factor_dir / f"lr_{config['data']}_{size}_m.pq").sort_index()
         if config["factors"] != 'all':
             factors = factors[config["factors"]]
-        sdfs = train(factors, config)
+        sdfs = train_rlr(factors, config)
 
         sdfs.to_parquet(output_path)
 
@@ -108,7 +108,6 @@ def run_rpt(config_name):
 
     for config, choices in iter_sweep(base_config, sweep_spec, order):
         size = choices["size"]
-        window = choices["window"]
         max_depth = choices["max_depth"]
         z = choices["z"]
 
@@ -132,7 +131,7 @@ def run_rpt(config_name):
         macro = pd.read_parquet(macro_path).sort_index()
         macro = macro.loc[factors.index]
 
-        sdfs = train(factors, macro, config)
+        sdfs = train_rpt(factors, macro, config)
         sdfs.to_parquet(output_path)
 
 def run_rpf(config_name):
@@ -180,7 +179,7 @@ def run_rpf(config_name):
         macro = pd.read_parquet(macro_path).sort_index()
         macro = macro.loc[factors.index]
 
-        result = train(factors, macro, config)
+        result = train_rpf(factors, macro, config)
 
         result["sdfs"].to_parquet(run_config_dir / "sdfs.pq")
 

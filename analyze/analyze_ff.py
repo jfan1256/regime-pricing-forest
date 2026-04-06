@@ -84,10 +84,10 @@ def best_sharpe_by_depth(
     df: pd.DataFrame,
 ) -> pd.Series:
     """
-    Return the best Sharpe within each RMST depth.
+    Return the best Sharpe within each rpf depth.
     """
     if df.empty:
-        raise ValueError("No loaded RMST results found.")
+        raise ValueError("No loaded rpf results found.")
 
     sr = sharpe(df)
     depths = sorted(sr.index.get_level_values("max_depth").unique())
@@ -128,28 +128,28 @@ if __name__ == "__main__":
     start = "1993-01-31"
     end = "2024-12-31"
 
-    lr = filter_sample(load_sdfs("lr.yml", get_result_lr()), start=start, end=end)
-    rlr = filter_sample(load_sdfs("rlr.yml", get_result_rlr()), start=start, end=end)
-    rmst = filter_sample(load_sdfs("rmst.yml", get_result_rpf()), start=start, end=end)
+    lr = filter_sample(load_sdfs("lr_ff.yml", get_result_lr()), start=start, end=end)
+    rlr = filter_sample(load_sdfs("rlr_ff.yml", get_result_rlr()), start=start, end=end)
+    rpf = filter_sample(load_sdfs("rpf_ff.yml", get_result_rpf()), start=start, end=end)
 
     lr_key, lr_best, lr_sr = best_model(lr)
     rlr_key, rlr_best, rlr_sr = best_model(rlr)
-    rmst_key, rmst_best, rmst_sr = best_model(rmst)
+    rpf_key, rpf_best, rpf_sr = best_model(rpf)
 
-    tstat_vs_lr = alpha_tstat(rmst_best, lr_best)
-    tstat_vs_rlr = alpha_tstat(rmst_best, rlr_best)
+    tstat_vs_lr = alpha_tstat(rpf_best, lr_best)
+    tstat_vs_rlr = alpha_tstat(rpf_best, rlr_best)
 
     lr_cum = cumulative_sum_return(lr_best, target_vol=0.10)
     rlr_cum = cumulative_sum_return(rlr_best, target_vol=0.10)
-    rmst_cum = cumulative_sum_return(rmst_best, target_vol=0.10)
+    rpf_cum = cumulative_sum_return(rpf_best, target_vol=0.10)
 
     fig, axes = make_figure(nrows=1, ncols=3, width=13.0, height=3.6)
     ax_left, ax_mid, ax_right = axes
 
     barplot(
         ax=ax_left,
-        x=["LR", "RLR", "RMST"],
-        y=[lr_sr, rlr_sr, rmst_sr],
+        x=["LR", "RLR", "RPF"],
+        y=[lr_sr, rlr_sr, rpf_sr],
         colors=get_bar_colors(3),
         ylabel="Annualized Sharpe",
         title="Model Sharpe Ratios",
@@ -162,7 +162,7 @@ if __name__ == "__main__":
         y=[tstat_vs_lr, tstat_vs_rlr],
         colors=get_bar_colors(2),
         ylabel="Alpha t-stat",
-        title="RMST Alpha t-stat Relative to Benchmarks",
+        title="rpf Alpha t-stat Relative to Benchmarks",
         zero=True,
     )
 
@@ -182,9 +182,9 @@ if __name__ == "__main__":
     )
     lineplot(
         ax=ax_right,
-        x=rmst_cum.index,
-        y=rmst_cum.to_numpy(),
-        label="RMST",
+        x=rpf_cum.index,
+        y=rpf_cum.to_numpy(),
+        label="RPF",
         color=get_line_color(2),
     )
     ax_right.set_ylabel("Cumulative Return")
@@ -193,7 +193,7 @@ if __name__ == "__main__":
 
     savefig(fig, "sharpe_ff_summary")
 
-    depth_sr = best_sharpe_by_depth(rmst)
+    depth_sr = best_sharpe_by_depth(rpf)
 
     fig, ax = make_figure(width=6.5, height=4.0)
     lineplot(
@@ -204,7 +204,7 @@ if __name__ == "__main__":
         marker="o",
         xlabel="Depth",
         ylabel="Annualized Sharpe",
-        title="RMST Sharpe by Depth",
+        title="rpf Sharpe by Depth",
     )
     ax.set_xticks(depth_sr.index.to_list())
 
