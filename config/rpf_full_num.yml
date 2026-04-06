@@ -1,0 +1,27 @@
+data: 'jkp'
+dtype: 'float32'
+size_list: ['all']
+window: 360
+max_depth_list: [6]
+min_leaf_size: 12
+bin: 10
+z_list:
+- 1.0e-6
+- 1.0e-4
+- 1.0e-2
+- 1.0
+- 100.0
+
+num_tree_list: [1, 2, 4, 8, 16, 32, 64]
+sample_frac: 0.8
+max_features: 3
+random_state: 42
+save: False
+n_jobs: 16
+parallel: "threads"
+
+factors: 'all'
+train: 'roll'
+split:
+  train: ['1963-01-31', '1987-12-31']
+  test:  ['1988-01-31', '2024-12-31']

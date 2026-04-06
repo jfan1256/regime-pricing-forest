@@ -1,0 +1,15 @@
+data: 'jkp'
+dtype: 'float32'
+size_list: ['all']
+window: 360
+max_depth_list: [1, 2, 3, 4, 5, 6]
+min_leaf_size: 12
+bin: 10
+z_list:
+- 0
+
+factors: ['market_equity', 'be_me', 'ope_be', 'at_gr1', 'ret_12_1']
+train: 'roll'
+split:
+  train: ['1963-01-31', '1987-12-31']
+  test:  ['1988-01-31', '2024-12-31']

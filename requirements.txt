@@ -1,0 +1,14 @@
+# conda install pytorch torchvision torchaudio pytorch-cuda=11.8 -c pytorch -c nvidia
+ipywidgets==8.0.1
+jupyterlab==3.4.5
+jupyterlab-widgets==3.0.2
+tqdm
+numpy
+polars
+pandas
+pyyaml
+seaborn
+pyarrow
+matplotlib
+statsmodels
+scikit-learn

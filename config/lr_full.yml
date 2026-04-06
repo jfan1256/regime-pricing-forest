@@ -1,0 +1,16 @@
+data: "jkp"
+dtype: 'float32'
+size_list: ['all']
+window: 360
+z_list_na:
+- 1.0e-6
+- 1.0e-4
+- 1.0e-2
+- 1.0
+- 100.0
+
+factors: 'all'
+train: 'roll'
+split:
+  train: ['1963-01-31', '1987-12-31']
+  test:  ['1988-01-31', '2024-12-31']
