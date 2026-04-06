@@ -24,7 +24,7 @@ def get_config():
 
 # Get result dir
 def get_result():
-    return ensure_dir(get_parent_root() / "result" / "tree")
+    return ensure_dir(get_parent_root() / "result" / "rpf")
 
 # Get plot dir
 def get_plot():
