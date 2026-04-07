@@ -2,7 +2,7 @@ data: 'jkp'
 dtype: 'float32'
 size_list: ['all']
 window: 360
-max_depth_list: [1, 2, 3, 4, 5, 6]
+max_depth_list: [1, 2, 4, 8]
 min_leaf_size: 12
 bin: 10
 z_list:
@@ -12,7 +12,7 @@ z_list:
 - 1.0
 - 100.0
 
-num_tree_list: [100]
+num_tree_list: [64]
 sample_frac: 0.8
 max_features: 3
 random_state: 42

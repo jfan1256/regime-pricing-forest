@@ -80,7 +80,7 @@ def sharpe_by_depth_z(
     df: pd.DataFrame,
 ) -> pd.DataFrame:
     """
-    Return RMST Sharpe table with index=max_depth and columns=z.
+    Return rpf Sharpe table with index=max_depth and columns=z.
 
     Assumes one column per (max_depth, z).
     """
@@ -95,11 +95,11 @@ def sharpe_by_depth_z(
     return out.sort_index().sort_index(axis=1)
 
 
-def rmst_series_by_depth_z(
+def rpf_series_by_depth_z(
     df: pd.DataFrame,
 ) -> dict[tuple[int, float], pd.Series]:
     """
-    Return RMST return series keyed by (max_depth, z).
+    Return rpf return series keyed by (max_depth, z).
 
     Assumes one column per (max_depth, z).
     """
@@ -135,49 +135,68 @@ def series_by_z(
     return out
 
 
+def format_depth_label(depth: int) -> str:
+    """
+    Format depth as a power-of-2 label, e.g. 1 -> 2^0, 2 -> 2^1, 4 -> 2^2.
+    Assumes depth is a power of 2.
+    """
+    exponent = int(np.log2(depth))
+    return rf"Depth = $2^{{{exponent}}}$"
+
+
+def format_depth_tick(depth: int) -> str:
+    """
+    Format depth tick labels as powers of 2.
+    """
+    exponent = int(np.log2(depth))
+    return rf"$2^{{{exponent}}}$"
+
+
+def format_shrinkage_label(z: float) -> str:
+    """
+    Format shrinkage values for legend labels.
+    """
+    return f"z = {z:g}"
+
+
 if __name__ == "__main__":
     start = "1993-01-31"
     end = "2024-12-31"
 
-    lr = filter_sample(load_sdfs("lr.yml", get_result_lr()), start=start, end=end)
-    rlr = filter_sample(load_sdfs("rlr.yml", get_result_rlr()), start=start, end=end)
-    rmst = filter_sample(load_sdfs("rmst.yml", get_result_rpf()), start=start, end=end)
+    lr = filter_sample(load_sdfs("lr_full.yml", get_result_lr()), start=start, end=end)
+    rlr = filter_sample(load_sdfs("rlr_full.yml", get_result_rlr()), start=start, end=end)
+    rpf = filter_sample(load_sdfs("rpf_full_depth.yml", get_result_rpf()), start=start, end=end)
 
     if lr.empty:
         raise ValueError("No loaded LR results found.")
     if rlr.empty:
         raise ValueError("No loaded RLR results found.")
-    if rmst.empty:
-        raise ValueError("No loaded RMST results found.")
+    if rpf.empty:
+        raise ValueError("No loaded RPF results found.")
 
     lr_sr = sharpe_by_z(lr)
     rlr_sr = sharpe_by_z(rlr)
-    rmst_sr = sharpe_by_depth_z(rmst)
+    rpf_sr = sharpe_by_depth_z(rpf)
 
     lr_series = series_by_z(lr)
     rlr_series = series_by_z(rlr)
-    rmst_series = rmst_series_by_depth_z(rmst)
+    rpf_series = rpf_series_by_depth_z(rpf)
 
-    common_z = sorted(set(lr_sr.index) & set(rlr_sr.index) & set(rmst_sr.columns))
-    depths = rmst_sr.index.to_list()
+    common_z = sorted(set(lr_sr.index) & set(rlr_sr.index) & set(rpf_sr.columns))
+    depths = rpf_sr.index.to_list()
 
-    if not common_z:
-        raise ValueError("No common shrinkage z values across LR, RLR, and RMST.")
-    if 3 not in depths:
-        raise ValueError("RMST depth 3 not found.")
-
-    plot_depth = 3
+    plot_depth = 1
 
     alpha_vs_lr = pd.Series(
         {
-            z: alpha_tstat(rmst_series[(plot_depth, z)], lr_series[z])
+            z: alpha_tstat(rpf_series[(plot_depth, z)], lr_series[z])
             for z in common_z
         }
     ).sort_index()
 
     alpha_vs_rlr = pd.Series(
         {
-            z: alpha_tstat(rmst_series[(plot_depth, z)], rlr_series[z])
+            z: alpha_tstat(rpf_series[(plot_depth, z)], rlr_series[z])
             for z in common_z
         }
     ).sort_index()
@@ -207,8 +226,8 @@ if __name__ == "__main__":
     lineplot(
         ax=ax_left,
         x=common_z,
-        y=rmst_sr.loc[plot_depth, common_z].to_numpy(),
-        label="RMST",
+        y=rpf_sr.loc[plot_depth, common_z].to_numpy(),
+        label="RPF",
         color=get_line_color(2),
         marker="o",
     )
@@ -225,7 +244,7 @@ if __name__ == "__main__":
         marker="o",
         xlabel="Shrinkage z",
         ylabel="Alpha t-stat",
-        title="RMST Alpha t-stat by Shrinkage",
+        title="RPF Alpha t-stat by Shrinkage",
         zero=False,
     )
     lineplot(
@@ -249,21 +268,42 @@ if __name__ == "__main__":
 
     savefig(fig, "sharpe_jkp_summary")
 
-    print(rmst_sr)
+    print(rpf_sr)
+
     fig, ax = make_figure(width=6.8, height=4.1)
     for i, depth in enumerate(depths):
         lineplot(
             ax=ax,
             x=common_z,
-            y=rmst_sr.loc[depth, common_z].to_numpy(),
-            label=f"Depth = {depth}",
+            y=rpf_sr.loc[depth, common_z].to_numpy(),
+            label=format_depth_label(depth),
             color=get_line_color(i),
             marker="o",
             xlabel="Shrinkage z",
             ylabel="Annualized Sharpe",
-            title="RMST Sharpe as a Function of Shrinkage",
+            title="RPF Sharpe as a Function of Shrinkage",
         )
     ax.set_xscale("log")
     ax.tick_params(axis="x", which="minor", bottom=False, top=False)
     format_legend(ax, outside=True)
     savefig(fig, "sharpe_jkp_by_depth")
+
+    fig, ax = make_figure(width=6.8, height=4.1)
+    for i, z in enumerate(common_z):
+        lineplot(
+            ax=ax,
+            x=depths,
+            y=rpf_sr.loc[depths, z].to_numpy(),
+            label=format_shrinkage_label(z),
+            color=get_line_color(i),
+            marker="o",
+            xlabel="Depth",
+            ylabel="Annualized Sharpe",
+            title="RPF Sharpe as a Function of Depth",
+        )
+    ax.set_xscale("log", base=2)
+    ax.set_xticks(depths)
+    ax.set_xticklabels([format_depth_tick(depth) for depth in depths])
+    ax.tick_params(axis="x", which="minor", bottom=False, top=False)
+    format_legend(ax, outside=True)
+    savefig(fig, "sharpe_jkp_by_shrinkage")

@@ -206,6 +206,8 @@ if __name__ == "__main__":
         ylabel="Annualized Sharpe",
         title="rpf Sharpe by Depth",
     )
+    ax.set_xscale("log", base=2)
+    ax.tick_params(axis="x", which="minor", bottom=False, top=False)
     ax.set_xticks(depth_sr.index.to_list())
 
     savefig(fig, "sharpe_ff_depth")

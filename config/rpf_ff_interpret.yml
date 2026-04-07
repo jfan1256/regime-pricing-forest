@@ -2,13 +2,13 @@ data: 'jkp'
 dtype: 'float32'
 size_list: ['all']
 window: 360
-max_depth_list: [3]
+max_depth_list: [8]
 min_leaf_size: 12
 bin: 10
 z_list:
 - 0
 
-num_tree_list: [100]
+num_tree_list: [64]
 sample_frac: 0.8
 max_features: 3
 random_state: 42
