@@ -2,7 +2,7 @@ data: 'jkp'
 dtype: 'float32'
 size_list: ['all']
 window: 360
-max_depth_list: [8]
+max_depth_list: [3]
 min_leaf_size: 12
 bin: 10
 z_list:

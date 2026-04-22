@@ -1,5 +1,8 @@
+# util/plot.py
+import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+import matplotlib.patheffects as pe
 
 from pathlib import Path
 from collections.abc import Iterable
@@ -7,73 +10,87 @@ from collections.abc import Iterable
 from util.system import get_plot
 
 
-# -------------------------------------------------
-# Global style parameters
-# -------------------------------------------------
-FIG_WIDTH = 6.5
-FIG_HEIGHT = 4.0
+FULL_WIDTH = 6.5
+HALF_WIDTH = 3.2
 
 FIG_DPI = 150
 SAVE_DPI = 300
 SAVE_EXT = ".png"
 
-FONT_SIZE = 10
-AXIS_LABEL_SIZE = 10
+FONT_SIZE = 9
+AXIS_LABEL_SIZE = 9
 TICK_LABEL_SIZE = 9
 LEGEND_SIZE = 9
-TITLE_SIZE = 11
+TITLE_SIZE = 9
 
-LINE_WIDTH = 1.8
+LINE_WIDTH = 1.7
 AXIS_LINE_WIDTH = 0.8
 TICK_WIDTH = 0.8
 GRID_WIDTH = 0.6
-BAR_EDGE_WIDTH = 0.5
+BAR_EDGE_WIDTH = 0
+MARKER_SIZE = 3.8
 
-MARKER_SIZE = 4.0
+COLOR_GRID = "#D8DEE9"
+COLOR_SPINE = "#2B2B2B"
+COLOR_ZERO = "#6B7280"
+COLOR_SIG = "#8B8B8B"
 
-COLOR_GRID = "0.88"
-COLOR_SPINE = "0.15"
+# Fixed shrinkage palette taken directly from the preferred shrinkage-line style.
+SHRINKAGE_COLORS = {
+    1e-4: "#7A6BA8",  # dark purple
+    1e-3: "#6574A8",  # indigo
+    1e-2: "#5A7FA6",  # blue
+    1e-1: "#6E9E9F",  # blue-green
+    1e0: "#86B39A",   # green
+}
 
-BAR_COLORS = [
-    "#4C78A8",
-    "#F58518",
-    "#54A24B",
-    "#E45756",
-    "#72B7B2",
-    "#B279A2",
-    "#FF9DA6",
-    "#9D755D",
-]
+# Use the same fixed colors everywhere.
+MODEL_COLORS = {
+    "LR": SHRINKAGE_COLORS[1e-4],
+    "RLR": SHRINKAGE_COLORS[1e-2],
+    "RPF": SHRINKAGE_COLORS[1e0],
+    "Bench: LR": SHRINKAGE_COLORS[1e-4],
+    "Bench: RLR": SHRINKAGE_COLORS[1e-2],
+    "vs LR": SHRINKAGE_COLORS[1e-4],
+    "vs RLR": SHRINKAGE_COLORS[1e-2],
+    "1% threshold": COLOR_SIG,
+}
 
 LINE_COLORS = [
-    "#4C78A8",
-    "#F58518",
-    "#54A24B",
-    "#E45756",
-    "#72B7B2",
-    "#B279A2",
-    "#EECA3B",
-    "#FF9DA6",
+    SHRINKAGE_COLORS[1e-4],
+    SHRINKAGE_COLORS[1e-3],
+    SHRINKAGE_COLORS[1e-2],
+    SHRINKAGE_COLORS[1e-1],
+    SHRINKAGE_COLORS[1e0],
+    "#4C6A91",
+    "#5A8C7A",
+    "#8D7AAF",
 ]
 
-ALPHA_LINE = 0.95
-ALPHA_BAR = 0.90
+BAR_COLORS = [
+    MODEL_COLORS["LR"],
+    MODEL_COLORS["RLR"],
+    MODEL_COLORS["RPF"],
+    SHRINKAGE_COLORS[1e-3],
+    SHRINKAGE_COLORS[1e-1],
+]
 
+ALPHA_LINE = 0.98
+ALPHA_BAR = 1.00
 LEGEND_FRAMEON = False
-TIGHT_LAYOUT_PAD = 0.2
 
 
 def set_plot_style() -> None:
     """
-    Set a compact journal-style plotting theme for all analysis figures.
+    Set the shared plotting style for all figures.
     """
     mpl.rcParams.update(
         {
             "figure.dpi": FIG_DPI,
             "savefig.dpi": SAVE_DPI,
-            "savefig.bbox": "tight",
-            "savefig.pad_inches": 0.03,
-            "figure.figsize": (FIG_WIDTH, FIG_HEIGHT),
+            "savefig.bbox": None,
+            "savefig.pad_inches": 0.02,
+            "figure.figsize": (FULL_WIDTH, 4.0),
             "font.size": FONT_SIZE,
             "axes.titlesize": TITLE_SIZE,
             "axes.labelsize": AXIS_LABEL_SIZE,
@@ -98,7 +115,7 @@ def set_plot_style() -> None:
 
 def iter_axes(axes) -> Iterable[plt.Axes]:
     """
-    Iterate through axes regardless of subplot layout shape.
+    Iterate over axes for either a single axis or an array of axes.
     """
     if isinstance(axes, plt.Axes):
         yield axes
@@ -110,6 +127,15 @@ def iter_axes(axes) -> Iterable[plt.Axes]:
     except AttributeError:
         for ax in axes:
             yield ax
+
+
+def normalize_ylabel(label: str | None) -> str | None:
+    """
+    Normalize common y-axis labels.
+    """
+    if label == "Annualized Sharpe":
+        return "Sharpe"
+    return label
 
 
 def apply_axis_style(ax: plt.Axes) -> plt.Axes:
@@ -137,13 +163,13 @@ def add_zero_line(ax: plt.Axes) -> plt.Axes:
     """
     Add a zero reference line.
     """
-    ax.axhline(0.0, color="0.45", linewidth=0.9, zorder=0)
+    ax.axhline(0.0, color=COLOR_ZERO, linewidth=0.9, zorder=0)
     return ax
 
 
 def get_bar_colors(n: int) -> list[str]:
     """
-    Return n bar colors from the fixed palette.
+    Return n colors from the fixed bar palette.
     """
     return [BAR_COLORS[i % len(BAR_COLORS)] for i in range(n)]
 
@@ -155,14 +181,31 @@ def get_line_color(i: int) -> str:
     return LINE_COLORS[i % len(LINE_COLORS)]
 
 
+def get_model_color(label: str, fallback_index: int = 0) -> str:
+    """
+    Return a fixed color for model-level plots.
+    """
+    return MODEL_COLORS.get(label, get_line_color(fallback_index))
+
+
+def get_shrinkage_color(z: float) -> str:
+    """
+    Return the fixed color for a shrinkage value.
+    """
+    key = float(z)
+    if key in SHRINKAGE_COLORS:
+        return SHRINKAGE_COLORS[key]
+    raise ValueError(f"No fixed shrinkage color configured for z={z}.")
+
+
 def format_legend(
     ax: plt.Axes,
-    loc: str = "upper left",
+    loc: str = "best",
     ncol: int = 1,
     outside: bool = False,
 ) -> None:
     """
-    Add a clean legend if labeled handles exist.
+    Add a legend if labeled handles exist.
     """
     handles, labels = ax.get_legend_handles_labels()
     if not handles:
@@ -170,10 +213,10 @@ def format_legend(
 
     if outside:
         ax.legend(
-            loc=loc,
+            loc="upper left",
             ncol=ncol,
             frameon=LEGEND_FRAMEON,
-            bbox_to_anchor=(1.02, 1.0),
+            bbox_to_anchor=(1.01, 1.0),
             borderaxespad=0.0,
         )
     else:
@@ -196,8 +239,8 @@ def rotate_xticklabels(
 def make_figure(
     nrows: int = 1,
     ncols: int = 1,
-    width: float = FIG_WIDTH,
-    height: float = FIG_HEIGHT,
+    width: float = FULL_WIDTH,
+    height: float = 4.0,
     sharex: bool = False,
     sharey: bool = False,
 ) -> tuple[plt.Figure, plt.Axes | object]:
@@ -211,6 +254,7 @@ def make_figure(
         figsize=(width, height),
         sharex=sharex,
         sharey=sharey,
+        constrained_layout=True,
     )
 
     for ax in iter_axes(axes):
@@ -224,7 +268,7 @@ def normalize_plot_path(filename: str | Path) -> Path:
     Normalize a plot filename to the configured output extension.
     """
     path = Path(filename)
-    if path.suffix == "":
+    if path.suffix != SAVE_EXT:
         path = path.with_suffix(SAVE_EXT)
     return path
 
@@ -243,10 +287,21 @@ def savefig(
     path = normalize_plot_path(filename)
     path = plot_dir / path.name
 
-    fig.tight_layout(pad=TIGHT_LAYOUT_PAD)
     fig.savefig(path, dpi=dpi)
     plt.close(fig)
     return path
+
+
+def set_categorical_ticks(
+    ax: plt.Axes,
+    x: np.ndarray,
+    labels: list[str],
+) -> None:
+    """
+    Apply fixed categorical ticks.
+    """
+    ax.set_xticks(x)
+    ax.set_xticklabels(labels)
 
 
 def barplot(
@@ -273,6 +328,55 @@ def barplot(
         edgecolor=COLOR_SPINE,
         linewidth=BAR_EDGE_WIDTH,
     )
+
+    ylabel = normalize_ylabel(ylabel)
+
+    if ylabel is not None:
+        ax.set_ylabel(ylabel)
+    if xlabel is not None:
+        ax.set_xlabel(xlabel)
+    if title is not None:
+        ax.set_title(title)
+
+    add_ygrid(ax)
+    if zero:
+        add_zero_line(ax)
+    return ax
+
+
+def grouped_barplot(
+    ax: plt.Axes,
+    groups: list[str],
+    series: dict[str, list[float]],
+    ylabel: str | None = None,
+    xlabel: str | None = None,
+    title: str | None = None,
+    zero: bool = False,
+) -> plt.Axes:
+    """
+    Draw a standardized grouped bar plot.
+    """
+    labels = list(series.keys())
+    values = np.asarray(list(series.values()), dtype=float)
+    x = np.arange(len(groups), dtype=float)
+    width = 0.8 / len(labels)
+
+    for i, label in enumerate(labels):
+        offset = (i - (len(labels) - 1) / 2.0) * width
+        ax.bar(
+            x + offset,
+            values[i],
+            width=width,
+            label=label,
+            color=get_model_color(label, i),
+            alpha=ALPHA_BAR,
+            edgecolor=COLOR_SPINE,
+            linewidth=BAR_EDGE_WIDTH,
+        )
+
+    ylabel = normalize_ylabel(ylabel)
+
+    set_categorical_ticks(ax, x=x, labels=groups)
 
     if ylabel is not None:
         ax.set_ylabel(ylabel)
@@ -302,7 +406,20 @@ def lineplot(
     """
     Draw a standardized line plot.
     """
-    ax.plot(x, y, label=label, color=color, marker=marker, alpha=ALPHA_LINE)
+    ylabel = normalize_ylabel(ylabel)
+
+    line, = ax.plot(
+        x,
+        y,
+        label=label,
+        color=color,
+        marker=marker,
+        alpha=ALPHA_LINE,
+    )
+    # line.set_path_effects([
+    #     pe.Stroke(linewidth=LINE_WIDTH + BAR_EDGE_WIDTH, foreground=COLOR_SPINE),
+    #     pe.Normal(),
+    # ])
 
     if ylabel is not None:
         ax.set_ylabel(ylabel)

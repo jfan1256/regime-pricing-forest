@@ -3,7 +3,7 @@ import pandas as pd
 from tqdm import tqdm
 
 from rpf.model import RPF
-from rpf.interpret import interpret_splits, interpret_leaves, interpret_regimes
+from rpf.interpret import interpret_splits, interpret_leaves, interpret_regimes, load_theme_map
 
 def train_roll(
     factors: pd.DataFrame,
@@ -23,6 +23,10 @@ def train_roll(
     dates = pd.DatetimeIndex(factors.index)
     factor_columns = factors.columns.tolist()
     macro_columns = macro.columns.tolist()
+
+    theme_map = None
+    if save and config.get("factors") == "all":
+        theme_map = load_theme_map()
 
     F = factors.to_numpy(dtype=dtype, copy=True)
     M = macro.to_numpy(dtype=dtype, copy=True)
@@ -78,6 +82,7 @@ def train_roll(
                 leaves=leaves,
                 factor_columns=factor_columns,
                 date=date_oos,
+                theme_map=theme_map,
             )
             char_regime_row = interpret_regimes(
                 model=model,
@@ -89,6 +94,7 @@ def train_roll(
                 date_oos=date_oos,
                 factor_columns=factor_columns,
                 macro_columns=macro_columns,
+                theme_map=theme_map,
             )
             char_rows.append(char_leaf_row.join(char_regime_row, how="inner"))
 
@@ -156,6 +162,10 @@ def train_fix(
     factor_columns = factors.columns.tolist()
     macro_columns = macro.columns.tolist()
 
+    theme_map = None
+    if save and config.get("factors") == "all":
+        theme_map = load_theme_map()
+
     model = RPF(config=config)
     model.fit(F_train, FF_train, M_train)
 
@@ -187,6 +197,32 @@ def train_fix(
             factor_columns=factor_columns,
             macro_columns=macro_columns,
         )
+
+        result["macro"] = interpret_splits(
+            splits=result["splits"],
+            macro_columns=macro_columns,
+            date=test_dates[-1],
+        )
+
+        char_leaf_row = interpret_leaves(
+            leaves=result["leaves"],
+            factor_columns=factor_columns,
+            date=test_dates[-1],
+            theme_map=theme_map,
+        )
+        char_regime_row = interpret_regimes(
+            model=model,
+            dates_is=pd.DatetimeIndex(factors_train.index),
+            F_is=F_train,
+            M_is=M_train,
+            F_oos=F_test[-1],
+            M_oos=M_test[-1],
+            date_oos=test_dates[-1],
+            factor_columns=factor_columns,
+            macro_columns=macro_columns,
+            theme_map=theme_map,
+        )
+        result["char"] = char_leaf_row.join(char_regime_row, how="inner")
 
     return result
 

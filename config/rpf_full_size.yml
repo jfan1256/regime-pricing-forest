@@ -1,7 +1,10 @@
 data: 'jkp'
 dtype: 'float32'
-size_list: ['all']
+size_list: ['mega', 'large', 'small', 'micro']
 window: 360
+max_depth_list: [3]
+min_leaf_size: 12
+bin: 10
 z_list:
 - 1.0e-4
 - 1.0e-3
@@ -9,10 +12,13 @@ z_list:
 - 1.0e-1
 - 1.0
 
-num_tree: 100
+num_tree_list: [64]
 sample_frac: 0.8
+max_features: 3
 random_state: 42
-n_jobs: 8
+save: False
+n_jobs: 16
+parallel: "threads"
 
 factors: 'all'
 train: 'roll'

@@ -2,15 +2,15 @@ data: 'jkp'
 dtype: 'float32'
 size_list: ['all']
 window: 360
-max_depth_list: [8]
+max_depth_list: [3]
 min_leaf_size: 12
 bin: 10
 z_list:
-- 1.0e-6
 - 1.0e-4
+- 1.0e-3
 - 1.0e-2
+- 1.0e-1
 - 1.0
-- 100.0
 
 num_tree_list: [1, 2, 4, 8, 16, 32, 64]
 sample_frac: 0.8

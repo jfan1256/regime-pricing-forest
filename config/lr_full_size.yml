@@ -1,6 +1,6 @@
 data: "jkp"
 dtype: 'float32'
-size_list: ['all']
+size_list: ['mega', 'large', 'small', 'micro']
 window: 360
 z_list_na:
 - 1.0e-4
